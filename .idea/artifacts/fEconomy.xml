@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="fEconomy">
+    <output-path>$PROJECT_DIR$/../plugin-tests/plugins</output-path>
+    <root id="archive" name="fEconomy.jar">
+      <element id="module-output" name="fEconomy" />
+    </root>
+  </artifact>
+</component>

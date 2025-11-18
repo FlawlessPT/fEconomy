@@ -3,7 +3,7 @@ package pt.flawless.fEconomy.database;
 import org.bukkit.Bukkit;
 import pt.flawless.fEconomy.Main;
 import pt.flawless.fapi.database.LocalDatabase;
-import pt.flawless.fapi.database.LocalDatabaseInit;
+import pt.flawless.fapi.database.LocalDatabaseImpl;
 
 import java.sql.SQLException;
 
@@ -17,7 +17,7 @@ public class DatabaseConnector {
                 "balance REAL DEFAULT 0 CHECK (balance >= 0)" +
                 ");";
 
-        LocalDatabaseInit(Main.getMainPlugin().getDataFolder()).init(() -> {
+        LocalDatabaseImpl.init(Main.getMainPlugin().getDataFolder(), () -> {
             try {
                 database = new LocalDatabase(Main.getMainPlugin().getDataFolder(), "economy", createTableScript);
                 database.connect();
@@ -25,6 +25,5 @@ public class DatabaseConnector {
                 Bukkit.getConsoleSender().sendMessage("SQL Exception - Error creating database!");
             }
         });
-
     }
 }

@@ -6,12 +6,14 @@ import org.bukkit.plugin.java.JavaPlugin;
 import pt.flawless.fEconomy.commands.MoneyCommand;
 import pt.flawless.fEconomy.database.DatabaseConnector;
 import pt.flawless.fEconomy.listeners.PlayerAuthListener;
+import pt.flawless.fapi.enums.EMessageTypeEnum;
 import pt.flawless.fapi.logs.FConsoleLogger;
 
 import java.sql.SQLException;
 
 public class Main extends JavaPlugin {
     private static Plugin plugin;
+    FConsoleLogger consoleLogger = new FConsoleLogger(this.getName());
 
     @Override
     public void onEnable() {
@@ -20,18 +22,19 @@ public class Main extends JavaPlugin {
         try {
             DatabaseConnector.init();
         } catch (SQLException e) {
+            consoleLogger.sendMessage("Error initializing database", EMessageTypeEnum.ERROR);
             throw new RuntimeException(e);
         }
 
         registerCommands();
         registerListeners();
 
-        FConsoleLogger.sendEnablePlugin(plugin.getName());
+        consoleLogger.sendEnablePluginMessage();
     }
 
     @Override
     public void onDisable() {
-        FConsoleLogger.sendDisablePlugin(plugin.getName());
+        consoleLogger.sendDisablePluginMessage();
     }
 
     private void registerCommands() {

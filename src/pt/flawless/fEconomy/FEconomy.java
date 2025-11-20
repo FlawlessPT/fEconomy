@@ -11,7 +11,7 @@ import pt.flawless.fapi.logs.FConsoleLogger;
 
 import java.sql.SQLException;
 
-public class Main extends JavaPlugin {
+public class FEconomy extends JavaPlugin {
     private static Plugin plugin;
     FConsoleLogger consoleLogger = new FConsoleLogger(this.getName());
 
@@ -21,6 +21,7 @@ public class Main extends JavaPlugin {
 
         try {
             DatabaseConnector.init();
+            FConsoleLogger.sendConsoleMessage("Database initiated succesfully", EMessageTypeEnum.INFO);
         } catch (SQLException e) {
             consoleLogger.sendMessage("Error initializing database", EMessageTypeEnum.ERROR);
             throw new RuntimeException(e);

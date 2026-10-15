@@ -1,52 +1,47 @@
 package pt.flawless.fEconomy;
 
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import pt.flawless.fEconomy.commands.MoneyCommand;
-import pt.flawless.fEconomy.database.DatabaseConnector;
 import pt.flawless.fEconomy.listeners.PlayerAuthListener;
+import pt.flawless.fEconomy.services.EconomyRepository;
+import pt.flawless.fEconomy.services.EconomyService;
+import pt.flawless.fapi.database.DatabaseService;
+import pt.flawless.fapi.database.DatabaseUnavailableException;
+import pt.flawless.fapi.database.Databases;
 import pt.flawless.fapi.enums.EMessageTypeEnum;
 import pt.flawless.fapi.logs.FConsoleLogger;
 
 import java.sql.SQLException;
+import java.util.List;
 
 public class FEconomy extends JavaPlugin {
-    private static Plugin plugin;
-    FConsoleLogger consoleLogger = new FConsoleLogger(this.getName());
+    private final FConsoleLogger consoleLogger = new FConsoleLogger(this.getName());
+    private boolean enabledOk = false;
 
     @Override
     public void onEnable() {
-        plugin = this;
-
+        EconomyService service;
         try {
-            DatabaseConnector.init();
-            FConsoleLogger.sendConsoleMessage("Database initiated succesfully", EMessageTypeEnum.INFO);
-        } catch (SQLException e) {
-            consoleLogger.sendMessage("Error initializing database", EMessageTypeEnum.ERROR);
-            throw new RuntimeException(e);
+            DatabaseService database = Databases.get();
+            database.migrate(this, List.of("db/feconomy/V001__create_balances.sql"));
+            service = new EconomyService(new EconomyRepository(database));
+        } catch (DatabaseUnavailableException | SQLException e) {
+            consoleLogger.sendMessage("não foi possível iniciar a economia: " + e.getMessage(), EMessageTypeEnum.ERROR);
+            getServer().getPluginManager().disablePlugin(this);
+            return;
         }
 
-        registerCommands();
-        registerListeners();
+        getCommand("money").setExecutor(new MoneyCommand(service, this));
+        getServer().getPluginManager().registerEvents(new PlayerAuthListener(service, this), this);
 
+        enabledOk = true;
         consoleLogger.sendEnablePluginMessage();
     }
 
     @Override
     public void onDisable() {
-        consoleLogger.sendDisablePluginMessage();
-    }
-
-    private void registerCommands() {
-        getCommand("money").setExecutor(new MoneyCommand());
-    }
-
-    private void registerListeners() {
-        Bukkit.getPluginManager().registerEvents(new PlayerAuthListener(), this);
-    }
-
-    public static Plugin getMainPlugin() {
-        return plugin;
+        if (enabledOk) {
+            consoleLogger.sendDisablePluginMessage();
+        }
     }
 }

@@ -2,7 +2,7 @@ name: fEconomy
 main: pt.flawless.fEconomy.FEconomy
 version: 1.0
 description: An economy plugin
-depend: [fAPI]
+depend: [fAPI, fDatabase]
 commands:
   money:
     description: Check a player's money

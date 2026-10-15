@@ -1,85 +1,79 @@
 package pt.flawless.fEconomy.services;
 
-import org.bukkit.Bukkit;
-import pt.flawless.fEconomy.database.DatabaseConnector;
-import pt.flawless.fapi.database.LocalDatabase;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * Regras de negócio da economia sobre o {@link EconomyRepository}. Todos os montantes são em cêntimos.
+ *
+ * <p>Violações de validação (montante inválido, argumento nulo) devolvem um futuro já falhado, com
+ * {@link IllegalArgumentException} (montante) ou {@link NullPointerException} (uuid/nome nulo); nunca lançam
+ * na thread chamadora e o repositório não é tocado.
+ */
 public class EconomyService {
-    private static LocalDatabase database = DatabaseConnector.database;
 
-    public static void createPlayerMoney(UUID uuid, String username) {
-        String sql = "INSERT INTO user_money(uuid, username) VALUES (?, ?);";
-        try (PreparedStatement ps = database.getConnection().prepareStatement(sql)) {
-            ps.setString(1, uuid.toString());
-            ps.setString(2, username);
-            ps.executeUpdate();
-        } catch (SQLException e) {
-            // TODO: Create EconomyServiceException
-            throw new RuntimeException(e);
-        }
+    private final EconomyRepository repository;
+
+    public EconomyService(EconomyRepository repository) {
+        this.repository = repository;
     }
 
-    public static double getPlayerMoney(UUID uuid) {
-        try {
-            PreparedStatement stmt = database.getConnection().prepareStatement("SELECT balance FROM user_money WHERE uuid = ?;");
-            stmt.setString(1, uuid.toString());
-            ResultSet rs = stmt.executeQuery();
-
-            if (rs.next()) {
-                double balance = rs.getDouble("balance");
-
-                return balance;
-            }
-        } catch (SQLException e) {
-            // TODO: Create EconomyServiceException
-            Bukkit.getConsoleSender().sendMessage(e.getMessage());
-            throw new RuntimeException(e);
+    /** Saldo em cêntimos; 0 se a conta não existir. */
+    public CompletableFuture<Long> getBalance(UUID uuid) {
+        if (uuid == null) {
+            return nullArgument("uuid");
         }
-
-        return 0;
+        return repository.findBalance(uuid).thenApply(balance -> balance.orElse(0L));
     }
 
-    public static double setPlayerMoney(UUID uuid, double newBalance) {
-        try {
-            PreparedStatement stmt = database.getConnection().prepareStatement("UPDATE user_money SET balance = ? WHERE uuid = ?;");
-            stmt.setDouble(1, newBalance);
-            stmt.setString(2, uuid.toString());
-            stmt.executeUpdate();
-
-            return newBalance;
-        } catch (SQLException e) {
-            // TODO: Create EconomyServiceException
-            throw new RuntimeException(e);
+    public CompletableFuture<Void> ensureAccount(UUID uuid, String username) {
+        if (uuid == null) {
+            return nullArgument("uuid");
         }
+        if (username == null) {
+            return nullArgument("username");
+        }
+        return repository.ensureAccount(uuid, username);
     }
 
-    public static double addPlayerMoney(UUID uuid, double amount) {
-        try {
-            // Update balance
-            PreparedStatement stmt = database.getConnection().prepareStatement("UPDATE user_money SET balance = balance + ? WHERE uuid = ?;");
-            stmt.setDouble(1, amount);
-            stmt.setString(2, uuid.toString());
-            stmt.executeUpdate();
-
-//            // Fetch new balance
-//            PreparedStatement selectStmt = database.getConnection().prepareStatement("SELECT balance FROM user_money WHERE uuid = ?;");
-//            selectStmt.setString(1, uuid.toString());
-//
-//            ResultSet rs = stmt.executeQuery();
-//            double newBalance = 0;
-//            if (rs.next()) {
-//                newBalance = rs.getDouble("balance");
-//            }
-
-            return amount;
-        } catch (SQLException e) {
-            // TODO: Create EconomyServiceException
-            throw new RuntimeException(e);
+    /** Exige {@code cents > 0}. */
+    public CompletableFuture<Long> deposit(UUID uuid, long cents) {
+        if (uuid == null) {
+            return nullArgument("uuid");
         }
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
+        return repository.deposit(uuid, cents);
+    }
+
+    /** Exige {@code cents > 0}; falha com InsufficientFundsException se o saldo não chegar. */
+    public CompletableFuture<Long> withdraw(UUID uuid, long cents) {
+        if (uuid == null) {
+            return nullArgument("uuid");
+        }
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
+        return repository.withdraw(uuid, cents);
+    }
+
+    /** Exige {@code cents >= 0}. */
+    public CompletableFuture<Long> setBalance(UUID uuid, long cents) {
+        if (uuid == null) {
+            return nullArgument("uuid");
+        }
+        if (cents < 0) {
+            return invalidAmount(cents);
+        }
+        return repository.setBalance(uuid, cents);
+    }
+
+    private static <T> CompletableFuture<T> invalidAmount(long cents) {
+        return CompletableFuture.failedFuture(new IllegalArgumentException("montante inválido: " + cents));
+    }
+
+    private static <T> CompletableFuture<T> nullArgument(String name) {
+        return CompletableFuture.failedFuture(new NullPointerException(name + " não pode ser nulo"));
     }
 }

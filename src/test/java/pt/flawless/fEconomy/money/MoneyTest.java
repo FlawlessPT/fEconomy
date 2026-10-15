@@ -70,6 +70,23 @@ class MoneyTest {
     }
 
     @Test
+    void parseAllowZero_acceptsZeroAndPositive() {
+        assertEquals(OptionalLong.of(0), Money.parseAllowZero("0"));
+        assertEquals(OptionalLong.of(0), Money.parseAllowZero("0,00"));
+        assertEquals(OptionalLong.of(50), Money.parseAllowZero("0,5"));
+        assertEquals(OptionalLong.of(1250), Money.parseAllowZero("12.50"));
+        assertEquals(OptionalLong.empty(), Money.parse("0"));
+        assertEquals(OptionalLong.empty(), Money.parse("0,00"));
+    }
+
+    @Test
+    void parseAllowZero_rejectsGarbageAndNegatives() {
+        for (String invalid : new String[]{null, "", "-1", "-0", "+1", "abc", "1,234", "1e3", " 1", "99999999999999999999999"}) {
+            assertEquals(OptionalLong.empty(), Money.parseAllowZero(invalid), "devia rejeitar: " + invalid);
+        }
+    }
+
+    @Test
     void parse_overflowIsRejected() {
         assertEquals(OptionalLong.of(Long.MAX_VALUE), Money.parse("92233720368547758,07"));
         assertEquals(OptionalLong.empty(), Money.parse("92233720368547758,08"));

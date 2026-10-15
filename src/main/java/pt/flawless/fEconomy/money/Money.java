@@ -19,12 +19,17 @@ public final class Money {
      * {@code long} de cêntimos
      */
     public static OptionalLong parse(String text) {
+        OptionalLong cents = parseAllowZero(text);
+        return cents.isPresent() && cents.getAsLong() > 0 ? cents : OptionalLong.empty();
+    }
+
+    /** Como {@link #parse(String)}, mas aceita 0 (por exemplo {@code 0}, {@code 0,00}). */
+    public static OptionalLong parseAllowZero(String text) {
         if (text == null || !AMOUNT.matcher(text).matches()) {
             return OptionalLong.empty();
         }
         try {
-            long cents = new BigDecimal(text.replace(',', '.')).movePointRight(2).longValueExact();
-            return cents > 0 ? OptionalLong.of(cents) : OptionalLong.empty();
+            return OptionalLong.of(new BigDecimal(text.replace(',', '.')).movePointRight(2).longValueExact());
         } catch (ArithmeticException overflow) {
             return OptionalLong.empty();
         }

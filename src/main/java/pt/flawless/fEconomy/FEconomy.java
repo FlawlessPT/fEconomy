@@ -6,7 +6,6 @@ import pt.flawless.fEconomy.listeners.PlayerAuthListener;
 import pt.flawless.fEconomy.services.EconomyRepository;
 import pt.flawless.fEconomy.services.EconomyService;
 import pt.flawless.fapi.database.DatabaseService;
-import pt.flawless.fapi.database.DatabaseUnavailableException;
 import pt.flawless.fapi.database.Databases;
 import pt.flawless.fapi.enums.EMessageTypeEnum;
 import pt.flawless.fapi.logs.FConsoleLogger;
@@ -20,19 +19,19 @@ public class FEconomy extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        EconomyService service;
         try {
             DatabaseService database = Databases.get();
             database.migrate(this, List.of("db/feconomy/V001__create_balances.sql"));
-            service = new EconomyService(new EconomyRepository(database));
-        } catch (DatabaseUnavailableException | SQLException e) {
+            EconomyService service = new EconomyService(new EconomyRepository(database));
+
+            getCommand("money").setExecutor(new MoneyCommand(service, this));
+            getServer().getPluginManager().registerEvents(new PlayerAuthListener(service, this), this);
+        } catch (SQLException | RuntimeException e) {
+            // inclui DatabaseUnavailableException (RuntimeException)
             consoleLogger.sendMessage("não foi possível iniciar a economia: " + e.getMessage(), EMessageTypeEnum.ERROR);
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
-
-        getCommand("money").setExecutor(new MoneyCommand(service, this));
-        getServer().getPluginManager().registerEvents(new PlayerAuthListener(service, this), this);
 
         enabledOk = true;
         consoleLogger.sendEnablePluginMessage();

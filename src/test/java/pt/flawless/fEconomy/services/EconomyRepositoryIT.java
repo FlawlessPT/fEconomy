@@ -127,6 +127,37 @@ class EconomyRepositoryIT {
     }
 
     @Test
+    void withdraw_nonPositiveAmountFailsWithIllegalArgumentAndLeavesBalanceIntact() throws Exception {
+        UUID id = UUID.randomUUID();
+        await(repo.ensureAccount(id, "Alice"));
+        await(repo.setBalance(id, 100));
+        for (long invalid : new long[]{0L, -5L}) {
+            assertInstanceOf(IllegalArgumentException.class, failureOf(repo.withdraw(id, invalid)));
+        }
+        assertEquals(Optional.of(100L), await(repo.findBalance(id)));
+    }
+
+    @Test
+    void deposit_nonPositiveAmountFailsWithIllegalArgumentAndLeavesBalanceIntact() throws Exception {
+        UUID id = UUID.randomUUID();
+        await(repo.ensureAccount(id, "Alice"));
+        await(repo.setBalance(id, 100));
+        for (long invalid : new long[]{0L, -5L}) {
+            assertInstanceOf(IllegalArgumentException.class, failureOf(repo.deposit(id, invalid)));
+        }
+        assertEquals(Optional.of(100L), await(repo.findBalance(id)));
+    }
+
+    @Test
+    void setBalance_negativeFailsWithIllegalArgument() throws Exception {
+        UUID id = UUID.randomUUID();
+        await(repo.ensureAccount(id, "Alice"));
+        await(repo.setBalance(id, 100));
+        assertInstanceOf(IllegalArgumentException.class, failureOf(repo.setBalance(id, -1)));
+        assertEquals(Optional.of(100L), await(repo.findBalance(id)));
+    }
+
+    @Test
     void withdraw_insufficientFundsFailsAndLeavesBalanceIntact() throws Exception {
         UUID id = UUID.randomUUID();
         await(repo.ensureAccount(id, "Alice"));

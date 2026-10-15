@@ -68,10 +68,16 @@ public class EconomyRepository {
     /**
      * Soma {@code cents} ao saldo, de forma atómica.
      *
+     * <p>Pré-condição: {@code cents > 0} (validado também no serviço); caso contrário o futuro falha já com
+     * {@link IllegalArgumentException} sem tocar na base de dados.
+     *
      * @return o novo saldo; falha com {@link AccountNotFoundException} se a conta não existir e com
      * {@link SQLException} em erro de base de dados (incluindo overflow de BIGINT, caso em que o saldo não muda)
      */
     public CompletableFuture<Long> deposit(UUID uuid, long cents) {
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
         return database.supplyAsync(connection -> inTransaction(connection, () -> {
             int rows;
             try (PreparedStatement ps = connection.prepareStatement(DEPOSIT)) {
@@ -90,11 +96,17 @@ public class EconomyRepository {
     /**
      * Subtrai {@code cents} ao saldo, de forma atómica, sem nunca ficar negativo.
      *
+     * <p>Pré-condição: {@code cents > 0} (validado também no serviço); caso contrário o futuro falha já com
+     * {@link IllegalArgumentException} sem tocar na base de dados.
+     *
      * @return o novo saldo; falha com {@link AccountNotFoundException} se a conta não existir, com
      * {@link InsufficientFundsException} se o saldo for menor que {@code cents} e com {@link SQLException}
      * em erro de base de dados
      */
     public CompletableFuture<Long> withdraw(UUID uuid, long cents) {
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
         return database.supplyAsync(connection -> inTransaction(connection, () -> {
             int rows;
             try (PreparedStatement ps = connection.prepareStatement(WITHDRAW)) {
@@ -117,10 +129,16 @@ public class EconomyRepository {
     /**
      * Define o saldo para {@code cents}.
      *
+     * <p>Pré-condição: {@code cents >= 0} (validado também no serviço); caso contrário o futuro falha já com
+     * {@link IllegalArgumentException} sem tocar na base de dados.
+     *
      * @return {@code cents}; falha com {@link AccountNotFoundException} se a conta não existir e com
      * {@link SQLException} em erro de base de dados (por exemplo valor negativo, recusado pelo CHECK)
      */
     public CompletableFuture<Long> setBalance(UUID uuid, long cents) {
+        if (cents < 0) {
+            return invalidAmount(cents);
+        }
         return database.supplyAsync(connection -> {
             int rows;
             try (PreparedStatement ps = connection.prepareStatement(SET_BALANCE)) {
@@ -133,6 +151,10 @@ public class EconomyRepository {
             }
             return cents;
         });
+    }
+
+    private static <T> CompletableFuture<T> invalidAmount(long cents) {
+        return CompletableFuture.failedFuture(new IllegalArgumentException("montante inválido: " + cents));
     }
 
     private static Long selectBalance(Connection connection, UUID uuid) throws SQLException {

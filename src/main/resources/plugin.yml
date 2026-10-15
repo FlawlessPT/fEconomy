@@ -6,7 +6,7 @@ depend: [fAPI, fDatabase]
 commands:
   money:
     description: Check your money, send money, or (admins) add, remove or set a player's balance
-    usage: /money [send <jogador> <montante> | add|remove|set <jogador> <montante>]
+    usage: /money [send <jogador> <montante>]
 permissions:
   feconomy.admin:
     description: Allows /money add, remove and set

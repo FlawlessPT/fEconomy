@@ -47,8 +47,9 @@ public class MoneyCommand implements CommandExecutor {
                 return true;
             }
             if (args.length != 0) {
-                player.sendMessage("§cUso: /money [send <jogador> <montante>] "
-                        + "| /money <add|remove|set> <jogador> <montante>");
+                player.sendMessage(args[0].equalsIgnoreCase("send")
+                        ? "§cUso: /money send <jogador> <montante>"
+                        : "§cUso: /money [send <jogador> <montante>]");
                 return true;
             }
 
@@ -145,7 +146,7 @@ public class MoneyCommand implements CommandExecutor {
             return;
         }
         if (args.length != 3) {
-            sender.sendMessage("§cUso: /money <add|remove|set> <jogador> <montante>");
+            sender.sendMessage("§cUso: /money " + args[0].toLowerCase() + " <jogador> <montante>");
             return;
         }
         String op = args[0].toLowerCase();

@@ -6,6 +6,7 @@ Pendências conhecidas deste plugin (15/10/2026). Riscar quando feito. Detalhes 
 - [ ] `/pay <jogador> <montante>` entre jogadores (precisa de parsing de montantes em `Money`).
 - [ ] Comandos de administração: dar, tirar e definir saldo.
 - [ ] Expor a economia a outros plugins (por exemplo ao fShop) por `ServicesManager`. Hoje o `EconomyService` não é acessível de fora; quem usar tem de chamar `ensureAccount` antes de depositar.
+- [ ] Ideias para `/money send`: impostos/taxas, histórico de transacções, destinatários offline, cooldown/anti-spam.
 - [ ] Cooldown no `/money` para não encher a fila de 4 threads da BD.
 
 ## Código

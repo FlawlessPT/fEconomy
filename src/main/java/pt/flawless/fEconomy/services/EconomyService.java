@@ -58,6 +58,27 @@ public class EconomyService {
         return repository.withdraw(uuid, cents);
     }
 
+    /**
+     * Exige {@code cents > 0} e {@code from != to}; falha com InsufficientFundsException se o saldo não chegar.
+     *
+     * @return o novo saldo de {@code from}
+     */
+    public CompletableFuture<Long> transfer(UUID from, UUID to, long cents) {
+        if (from == null) {
+            return nullArgument("from");
+        }
+        if (to == null) {
+            return nullArgument("to");
+        }
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
+        if (from.equals(to)) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("origem e destino iguais: " + from));
+        }
+        return repository.transfer(from, to, cents);
+    }
+
     /** Exige {@code cents >= 0}. */
     public CompletableFuture<Long> setBalance(UUID uuid, long cents) {
         if (uuid == null) {

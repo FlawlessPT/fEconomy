@@ -35,6 +35,9 @@ public class EconomyRepository {
     private static final String DEPOSIT = "UPDATE feconomy_balances SET balance = balance + ? WHERE uuid = ?";
     private static final String WITHDRAW =
             "UPDATE feconomy_balances SET balance = balance - ? WHERE uuid = ? AND balance >= ?";
+    // bloqueia as duas linhas sempre pela mesma ordem (uuid), para transferências opostas não darem deadlock
+    private static final String LOCK_BALANCES =
+            "SELECT uuid, balance FROM feconomy_balances WHERE uuid IN (?, ?) ORDER BY uuid FOR UPDATE";
     private static final String SET_BALANCE = "UPDATE feconomy_balances SET balance = ? WHERE uuid = ?";
 
     private final DatabaseService database;
@@ -123,6 +126,66 @@ public class EconomyRepository {
                 throw new InsufficientFundsException(uuid, balance, cents);
             }
             return balance;
+        }));
+    }
+
+    /**
+     * Transfere {@code cents} de {@code from} para {@code to} numa só transacção: ou os dois saldos mudam ou
+     * nenhum muda.
+     *
+     * <p>Pré-condição: {@code cents > 0} e {@code from != to} (validado também no serviço); caso contrário o
+     * futuro falha já com {@link IllegalArgumentException} sem tocar na base de dados.
+     *
+     * @return o novo saldo de {@code from}; falha com {@link AccountNotFoundException} (do uuid em falta) se
+     * uma das contas não existir, com {@link InsufficientFundsException} se o saldo de {@code from} for menor
+     * que {@code cents} e com {@link SQLException} em erro de base de dados (incluindo overflow de BIGINT no
+     * saldo de {@code to}, caso em que nenhum saldo muda)
+     */
+    public CompletableFuture<Long> transfer(UUID from, UUID to, long cents) {
+        if (cents <= 0) {
+            return invalidAmount(cents);
+        }
+        if (from.equals(to)) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("origem e destino iguais: " + from));
+        }
+        return database.supplyAsync(connection -> inTransaction(connection, () -> {
+            Long fromBalance = null;
+            boolean toExists = false;
+            try (PreparedStatement ps = connection.prepareStatement(LOCK_BALANCES)) {
+                ps.setString(1, from.toString());
+                ps.setString(2, to.toString());
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        if (rs.getString(1).equals(from.toString())) {
+                            fromBalance = rs.getLong(2);
+                        } else {
+                            toExists = true;
+                        }
+                    }
+                }
+            }
+            if (fromBalance == null) {
+                throw new AccountNotFoundException(from);
+            }
+            if (!toExists) {
+                throw new AccountNotFoundException(to);
+            }
+            if (fromBalance < cents) {
+                throw new InsufficientFundsException(from, fromBalance, cents);
+            }
+            // as duas linhas estão bloqueadas, por isso estes UPDATE não competem com ninguém
+            try (PreparedStatement ps = connection.prepareStatement(WITHDRAW)) {
+                ps.setLong(1, cents);
+                ps.setString(2, from.toString());
+                ps.setLong(3, cents);
+                ps.executeUpdate();
+            }
+            try (PreparedStatement ps = connection.prepareStatement(DEPOSIT)) {
+                ps.setLong(1, cents);
+                ps.setString(2, to.toString());
+                ps.executeUpdate();
+            }
+            return fromBalance - cents;
         }));
     }
 

@@ -242,4 +242,93 @@ class EconomyRepositoryIT {
         assertInstanceOf(SQLException.class, failureOf(direct));
         assertEquals(Optional.of(0L), await(repo.findBalance(id)));
     }
+
+    private UUID account(String name, long balance) throws Exception {
+        UUID id = UUID.randomUUID();
+        await(repo.ensureAccount(id, name));
+        await(repo.setBalance(id, balance));
+        return id;
+    }
+
+    @Test
+    void transfer_movesExactAmountAndReturnsSenderBalance() throws Exception {
+        UUID a = account("Alice", 1000);
+        UUID b = account("Bob", 250);
+        assertEquals(700L, await(repo.transfer(a, b, 300)));
+        assertEquals(Optional.of(700L), await(repo.findBalance(a)));
+        assertEquals(Optional.of(550L), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_wholeBalanceIsAllowed() throws Exception {
+        UUID a = account("Alice", 300);
+        UUID b = account("Bob", 0);
+        assertEquals(0L, await(repo.transfer(a, b, 300)));
+        assertEquals(Optional.of(300L), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_insufficientFundsLeavesBothIntact() throws Exception {
+        UUID a = account("Alice", 100);
+        UUID b = account("Bob", 50);
+        assertInstanceOf(InsufficientFundsException.class, failureOf(repo.transfer(a, b, 101)));
+        assertEquals(Optional.of(100L), await(repo.findBalance(a)));
+        assertEquals(Optional.of(50L), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_missingRecipientLeavesSenderIntact() throws Exception {
+        UUID a = account("Alice", 100);
+        UUID ghost = UUID.randomUUID();
+        Throwable cause = failureOf(repo.transfer(a, ghost, 10));
+        assertInstanceOf(AccountNotFoundException.class, cause);
+        assertTrue(cause.getMessage().contains(ghost.toString()));
+        assertEquals(Optional.of(100L), await(repo.findBalance(a)));
+    }
+
+    @Test
+    void transfer_missingSenderLeavesRecipientIntact() throws Exception {
+        UUID b = account("Bob", 100);
+        UUID ghost = UUID.randomUUID();
+        Throwable cause = failureOf(repo.transfer(ghost, b, 10));
+        assertInstanceOf(AccountNotFoundException.class, cause);
+        assertTrue(cause.getMessage().contains(ghost.toString()));
+        assertEquals(Optional.of(100L), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_invalidArgumentsFailWithoutTouchingBalances() throws Exception {
+        UUID a = account("Alice", 100);
+        UUID b = account("Bob", 100);
+        assertInstanceOf(IllegalArgumentException.class, failureOf(repo.transfer(a, b, 0)));
+        assertInstanceOf(IllegalArgumentException.class, failureOf(repo.transfer(a, b, -1)));
+        assertInstanceOf(IllegalArgumentException.class, failureOf(repo.transfer(a, a, 10)));
+        assertEquals(Optional.of(100L), await(repo.findBalance(a)));
+        assertEquals(Optional.of(100L), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_recipientOverflowRollsBackSender() throws Exception {
+        UUID a = account("Alice", 100);
+        UUID b = account("Bob", Long.MAX_VALUE - 5);
+        assertInstanceOf(SQLException.class, failureOf(repo.transfer(a, b, 10)));
+        assertEquals(Optional.of(100L), await(repo.findBalance(a)));
+        assertEquals(Optional.of(Long.MAX_VALUE - 5), await(repo.findBalance(b)));
+    }
+
+    @Test
+    void transfer_oppositeConcurrentTransfersDoNotDeadlockAndKeepTotal() throws Exception {
+        UUID a = account("Alice", 100_000);
+        UUID b = account("Bob", 100_000);
+        List<CompletableFuture<Long>> all = new ArrayList<>();
+        for (int round = 0; round < 50; round++) {
+            all.add(repo.transfer(a, b, 7));
+            all.add(repo.transfer(b, a, 3));
+        }
+        for (CompletableFuture<Long> future : all) {
+            await(future);
+        }
+        assertEquals(Optional.of(100_000L - 50 * 7 + 50 * 3), await(repo.findBalance(a)));
+        assertEquals(Optional.of(100_000L + 50 * 7 - 50 * 3), await(repo.findBalance(b)));
+    }
 }

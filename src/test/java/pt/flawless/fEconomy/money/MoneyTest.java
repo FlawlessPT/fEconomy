@@ -2,6 +2,8 @@ package pt.flawless.fEconomy.money;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.OptionalLong;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -46,5 +48,31 @@ class MoneyTest {
     @Test
     void format_negativeThrows() {
         assertThrows(IllegalArgumentException.class, () -> Money.format(-1));
+    }
+
+    @Test
+    void parse_validAmounts() {
+        assertEquals(OptionalLong.of(1200), Money.parse("12"));
+        assertEquals(OptionalLong.of(1250), Money.parse("12,5"));
+        assertEquals(OptionalLong.of(1250), Money.parse("12.50"));
+        assertEquals(OptionalLong.of(1250), Money.parse("12,50"));
+        assertEquals(OptionalLong.of(1), Money.parse("0,01"));
+        assertEquals(OptionalLong.of(5), Money.parse("0.05"));
+        assertEquals(OptionalLong.of(1250), Money.parse("012,50"));
+    }
+
+    @Test
+    void parse_invalidAmounts() {
+        for (String invalid : new String[]{null, "", " ", "0", "0,00", "-5", "-0,5", "+5", "1,234", "1.234,5",
+                "1,", ",5", "1,2,3", "abc", "1e3", "12€", " 12", "12 ", "NaN", "٣"}) {
+            assertEquals(OptionalLong.empty(), Money.parse(invalid), "devia rejeitar: " + invalid);
+        }
+    }
+
+    @Test
+    void parse_overflowIsRejected() {
+        assertEquals(OptionalLong.of(Long.MAX_VALUE), Money.parse("92233720368547758,07"));
+        assertEquals(OptionalLong.empty(), Money.parse("92233720368547758,08"));
+        assertEquals(OptionalLong.empty(), Money.parse("99999999999999999999999"));
     }
 }

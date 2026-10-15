@@ -56,6 +56,18 @@ class EconomyServiceTest {
         }
 
         @Override
+        public CompletableFuture<Long> transfer(UUID from, UUID to, long cents) {
+            calls++;
+            long current = balances.getOrDefault(from, 0L);
+            if (current < cents) {
+                return CompletableFuture.failedFuture(new InsufficientFundsException(from, current, cents));
+            }
+            balances.put(from, current - cents);
+            balances.merge(to, cents, Long::sum);
+            return CompletableFuture.completedFuture(current - cents);
+        }
+
+        @Override
         public CompletableFuture<Long> setBalance(UUID uuid, long cents) {
             calls++;
             balances.put(uuid, cents);
@@ -139,5 +151,52 @@ class EconomyServiceTest {
         assertEquals("Joao", repo.names.get(id));
         assertEquals(0L, repo.balances.get(id));
         assertEquals(1, repo.calls);
+    }
+
+    @Test
+    void transfer_nullArgumentsFailWithNullPointer() {
+        UUID other = UUID.randomUUID();
+        assertInstanceOf(NullPointerException.class, failureOf(service.transfer(null, other, 10)));
+        assertInstanceOf(NullPointerException.class, failureOf(service.transfer(id, null, 10)));
+        assertEquals(0, repo.calls);
+    }
+
+    @Test
+    void transfer_nonPositiveFailsWithoutTouchingRepository() {
+        UUID other = UUID.randomUUID();
+        for (long invalid : new long[]{0L, -5L}) {
+            Throwable cause = failureOf(service.transfer(id, other, invalid));
+            assertInstanceOf(IllegalArgumentException.class, cause);
+            assertTrue(cause.getMessage().contains("montante"));
+        }
+        assertEquals(0, repo.calls);
+    }
+
+    @Test
+    void transfer_toSelfFailsWithoutTouchingRepository() {
+        repo.balances.put(id, 100L);
+        assertInstanceOf(IllegalArgumentException.class, failureOf(service.transfer(id, id, 10)));
+        assertEquals(0, repo.calls);
+        assertEquals(100L, repo.balances.get(id));
+    }
+
+    @Test
+    void transfer_delegatesAndReturnsSenderBalance() throws Exception {
+        UUID other = UUID.randomUUID();
+        repo.balances.put(id, 500L);
+        repo.balances.put(other, 20L);
+        assertEquals(300L, service.transfer(id, other, 200L).get());
+        assertEquals(220L, repo.balances.get(other));
+        assertEquals(1, repo.calls);
+    }
+
+    @Test
+    void transfer_propagatesInsufficientFunds() {
+        UUID other = UUID.randomUUID();
+        repo.balances.put(id, 100L);
+        repo.balances.put(other, 0L);
+        assertInstanceOf(InsufficientFundsException.class, failureOf(service.transfer(id, other, 250L)));
+        assertEquals(100L, repo.balances.get(id));
+        assertEquals(0L, repo.balances.get(other));
     }
 }

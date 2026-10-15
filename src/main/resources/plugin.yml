@@ -5,4 +5,5 @@ description: An economy plugin
 depend: [fAPI, fDatabase]
 commands:
   money:
-    description: Check a player's money
+    description: Check your money or send money to an online player
+    usage: /money [send <jogador> <montante>]

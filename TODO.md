@@ -22,3 +22,4 @@ Pendências conhecidas deste plugin (15/10/2026). Riscar quando feito. Detalhes 
 
 ## Limpeza
 - [ ] O `economy.db` antigo continua em `plugins/fEconomy/` no servidor de testes, sem uso: apagar quando já não fizer falta.
+- [ ] `/money help` hoje só para staff (`feconomy.admin`): abrir a jogadores (mostrando só `/money` e `/money send`).

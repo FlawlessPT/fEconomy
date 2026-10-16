@@ -36,6 +36,10 @@ public class MoneyCommand implements CommandExecutor {
                 admin(sender, args);
                 return true;
             }
+            if (args.length > 0 && args[0].equalsIgnoreCase("help")) {
+                help(sender);
+                return true;
+            }
             if (!(sender instanceof Player)) {
                 sender.sendMessage("§cApenas jogadores podem usar este comando.");
                 return true;
@@ -137,6 +141,20 @@ public class MoneyCommand implements CommandExecutor {
         if (cause == null && target.isOnline()) {
             target.sendMessage("§aRecebeste §7" + Money.format(cents) + " §ade " + player.getName() + ".");
         }
+    }
+
+    /** /money help: só para staff (feconomy.admin) por agora. Corre na thread principal; pode ser a consola. */
+    private void help(CommandSender sender) {
+        if (!sender.hasPermission("feconomy.admin")) {
+            sender.sendMessage("§cNão tens permissão.");
+            return;
+        }
+        sender.sendMessage("§e/money §7- Mostra o teu saldo");
+        sender.sendMessage("§e/money send <jogador> <montante> §7- Envia dinheiro a um jogador online");
+        sender.sendMessage("§e/money add <jogador> <montante> §7- Adiciona saldo a um jogador");
+        sender.sendMessage("§e/money remove <jogador> <montante> §7- Remove saldo a um jogador");
+        sender.sendMessage("§e/money set <jogador> <montante> §7- Define o saldo de um jogador");
+        sender.sendMessage("§e/money help §7- Mostra esta lista");
     }
 
     /** /money add|remove|set. Corre na thread principal; o remetente pode ser a consola. */

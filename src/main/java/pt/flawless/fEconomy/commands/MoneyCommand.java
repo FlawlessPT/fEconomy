@@ -51,9 +51,14 @@ public class MoneyCommand implements CommandExecutor {
                 return true;
             }
             if (args.length != 0) {
-                player.sendMessage(args[0].equalsIgnoreCase("send")
-                        ? "§cUso: /money send <jogador> <montante>"
-                        : "§cUso: /money [send <jogador> <montante>]");
+                if (args[0].equalsIgnoreCase("send")) {
+                    player.sendMessage("§cUso: /money send <jogador> <montante>");
+                } else {
+                    // /money help é só para staff por agora: os outros não recebem uma dica que não podem usar
+                    player.sendMessage(player.hasPermission("feconomy.admin")
+                            ? "§cSubcomando desconhecido. Usa /money help para ver os comandos disponíveis."
+                            : "§cSubcomando desconhecido.");
+                }
                 return true;
             }
 

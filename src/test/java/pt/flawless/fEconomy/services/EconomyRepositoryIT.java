@@ -5,8 +5,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import pt.flawless.fEconomy.TestDatabaseService;
 import pt.flawless.fEconomy.TestDb;
-import pt.flawless.fEconomy.exceptions.AccountNotFoundException;
-import pt.flawless.fEconomy.exceptions.InsufficientFundsException;
+import pt.flawless.fapi.economy.AccountNotFoundException;
+import pt.flawless.fapi.economy.InsufficientFundsException;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;

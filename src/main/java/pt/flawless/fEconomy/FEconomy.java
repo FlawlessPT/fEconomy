@@ -1,11 +1,13 @@
 package pt.flawless.fEconomy;
 
+import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import pt.flawless.fEconomy.commands.MoneyCommand;
 import pt.flawless.fEconomy.listeners.PlayerAuthListener;
 import pt.flawless.fEconomy.services.EconomyRepository;
 import pt.flawless.fEconomy.services.EconomyService;
 import pt.flawless.fapi.database.DatabaseService;
+import pt.flawless.fapi.economy.EconomyApi;
 import pt.flawless.fapi.database.Databases;
 import pt.flawless.fapi.enums.EMessageTypeEnum;
 import pt.flawless.fapi.logs.FConsoleLogger;
@@ -26,6 +28,7 @@ public class FEconomy extends JavaPlugin {
 
             getCommand("money").setExecutor(new MoneyCommand(service, this));
             getServer().getPluginManager().registerEvents(new PlayerAuthListener(service, this), this);
+            getServer().getServicesManager().register(EconomyApi.class, service, this, ServicePriority.Normal);
         } catch (SQLException | RuntimeException e) {
             // inclui DatabaseUnavailableException (RuntimeException)
             consoleLogger.sendMessage("não foi possível iniciar a economia: " + e.getMessage(), EMessageTypeEnum.ERROR);

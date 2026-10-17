@@ -1,7 +1,7 @@
 package pt.flawless.fEconomy.services;
 
-import pt.flawless.fEconomy.exceptions.AccountNotFoundException;
-import pt.flawless.fEconomy.exceptions.InsufficientFundsException;
+import pt.flawless.fapi.economy.AccountNotFoundException;
+import pt.flawless.fapi.economy.InsufficientFundsException;
 import pt.flawless.fapi.database.DatabaseService;
 
 import java.sql.Connection;

@@ -1,7 +1,8 @@
 package pt.flawless.fEconomy.services;
 
 import org.junit.jupiter.api.Test;
-import pt.flawless.fEconomy.exceptions.InsufficientFundsException;
+import pt.flawless.fapi.economy.EconomyApi;
+import pt.flawless.fapi.economy.InsufficientFundsException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -198,5 +199,12 @@ class EconomyServiceTest {
         assertInstanceOf(InsufficientFundsException.class, failureOf(service.transfer(id, other, 250L)));
         assertEquals(100L, repo.balances.get(id));
         assertEquals(0L, repo.balances.get(other));
+    }
+
+    @Test
+    void implementsEconomyApi_andFormatsCents() {
+        EconomyApi api = new EconomyService(new FakeRepository());
+        assertEquals("12,50€", api.format(1250));
+        assertEquals("0,05€", api.format(5));
     }
 }

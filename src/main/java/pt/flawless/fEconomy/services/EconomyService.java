@@ -1,5 +1,8 @@
 package pt.flawless.fEconomy.services;
 
+import pt.flawless.fEconomy.money.Money;
+import pt.flawless.fapi.economy.EconomyApi;
+
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -10,7 +13,7 @@ import java.util.concurrent.CompletableFuture;
  * {@link IllegalArgumentException} (montante) ou {@link NullPointerException} (uuid/nome nulo); nunca lançam
  * na thread chamadora e o repositório não é tocado.
  */
-public class EconomyService {
+public class EconomyService implements EconomyApi {
 
     private final EconomyRepository repository;
 
@@ -19,6 +22,7 @@ public class EconomyService {
     }
 
     /** Saldo em cêntimos; 0 se a conta não existir. */
+    @Override
     public CompletableFuture<Long> getBalance(UUID uuid) {
         if (uuid == null) {
             return nullArgument("uuid");
@@ -37,6 +41,7 @@ public class EconomyService {
     }
 
     /** Exige {@code cents > 0}. */
+    @Override
     public CompletableFuture<Long> deposit(UUID uuid, long cents) {
         if (uuid == null) {
             return nullArgument("uuid");
@@ -48,6 +53,7 @@ public class EconomyService {
     }
 
     /** Exige {@code cents > 0}; falha com InsufficientFundsException se o saldo não chegar. */
+    @Override
     public CompletableFuture<Long> withdraw(UUID uuid, long cents) {
         if (uuid == null) {
             return nullArgument("uuid");
@@ -63,6 +69,7 @@ public class EconomyService {
      *
      * @return o novo saldo de {@code from}
      */
+    @Override
     public CompletableFuture<Long> transfer(UUID from, UUID to, long cents) {
         if (from == null) {
             return nullArgument("from");
@@ -88,6 +95,11 @@ public class EconomyService {
             return invalidAmount(cents);
         }
         return repository.setBalance(uuid, cents);
+    }
+
+    @Override
+    public String format(long cents) {
+        return Money.format(cents);
     }
 
     private static <T> CompletableFuture<T> invalidAmount(long cents) {

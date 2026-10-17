@@ -1,5 +1,6 @@
 package pt.flawless.fEconomy.commands;
 
+import pt.flawless.fapi.messages.Messages;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -190,7 +191,7 @@ public class MoneyCommand implements CommandExecutor {
     /** /money help: só para staff (feconomy.admin) por agora. Corre na thread principal; pode ser a consola. */
     private void help(CommandSender sender) {
         if (!sender.hasPermission("feconomy.admin")) {
-            sender.sendMessage("§cNão tens permissão.");
+            Messages.noPermission(sender);
             return;
         }
         sender.sendMessage("§e/money §7- Mostra o teu saldo");
@@ -205,7 +206,7 @@ public class MoneyCommand implements CommandExecutor {
     /** /money add|remove|set. Corre na thread principal; o remetente pode ser a consola. */
     private void admin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("feconomy.admin")) {
-            sender.sendMessage("§cNão tens permissão.");
+            Messages.noPermission(sender);
             return;
         }
         if (args.length != 3) {

@@ -122,11 +122,11 @@ public class MoneyCommand implements CommandExecutor {
 
         long amount = cents.getAsLong();
         later(service.transfer(player.getUniqueId(), target.getUniqueId(), amount), "/money send de " + player.getName(),
-                (balance, error) -> replySend(player, target, amount, error));
+                (balance, error) -> replySend(player, target, amount, balance, error));
     }
 
     /** Corre na thread principal. */
-    private void replySend(Player player, Player target, long cents, Throwable error) {
+    private void replySend(Player player, Player target, long cents, Long balance, Throwable error) {
         Throwable cause = unwrap(error);
         if (cause != null && !expected(cause)) {
             FConsoleLogger.sendConsoleMessage("não foi possível transferir de " + player.getName() + " para "
@@ -134,7 +134,8 @@ public class MoneyCommand implements CommandExecutor {
         }
         if (player.isOnline()) {
             if (cause == null) {
-                player.sendMessage("§aEnviaste §7" + Money.format(cents) + " §aa " + target.getName() + ".");
+                player.sendMessage("§aEnviaste §7" + Money.format(cents) + " §aa " + target.getName()
+                        + ". Novo saldo: §7" + Money.format(balance));
             } else if (cause instanceof InsufficientFundsException) {
                 player.sendMessage("§cSaldo insuficiente.");
             } else if (cause instanceof AccountNotFoundException) {
@@ -144,7 +145,13 @@ public class MoneyCommand implements CommandExecutor {
             }
         }
         if (cause == null && target.isOnline()) {
-            target.sendMessage("§aRecebeste §7" + Money.format(cents) + " §ade " + player.getName() + ".");
+            String from = player.getName();
+            later(service.getBalance(target.getUniqueId()), "/money send para " + target.getName(), (targetBalance, e) -> {
+                if (target.isOnline()) {
+                    target.sendMessage("§aRecebeste §7" + Money.format(cents) + " §ade " + from + "."
+                            + (e == null ? " Novo saldo: §7" + Money.format(targetBalance) : ""));
+                }
+            });
         }
     }
 

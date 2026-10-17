@@ -36,13 +36,20 @@ class MoneyTest {
     }
 
     @Test
-    void format_noThousandsSeparator() {
-        assertEquals("1000,00€", Money.format(100000));
+    void format_abbreviates() {
+        assertEquals("999,99€", Money.format(99999));
+        assertEquals("1k€", Money.format(100000));
+        assertEquals("1,5k€", Money.format(150000));
+        assertEquals("1,05k€", Money.format(105000));
+        assertEquals("999,99k€", Money.format(99_999_999));
+        assertEquals("1M€", Money.format(100_000_000));
+        assertEquals("2,34M€", Money.format(234_567_890));
+        assertEquals("1B€", Money.format(100_000_000_000L));
     }
 
     @Test
     void format_longMaxValue() {
-        assertEquals("92233720368547758,07€", Money.format(Long.MAX_VALUE));
+        assertEquals("92233720,36B€", Money.format(Long.MAX_VALUE));
     }
 
     @Test
@@ -59,12 +66,17 @@ class MoneyTest {
         assertEquals(OptionalLong.of(1), Money.parse("0,01"));
         assertEquals(OptionalLong.of(5), Money.parse("0.05"));
         assertEquals(OptionalLong.of(1250), Money.parse("012,50"));
+        assertEquals(OptionalLong.of(100000), Money.parse("1k"));
+        assertEquals(OptionalLong.of(150000), Money.parse("1,5K"));
+        assertEquals(OptionalLong.of(250_000_000), Money.parse("2.5m"));
+        assertEquals(OptionalLong.of(300_000_000_000L), Money.parse("3B"));
+        assertEquals(OptionalLong.of(123450), Money.parse("1,2345k"));
     }
 
     @Test
     void parse_invalidAmounts() {
         for (String invalid : new String[]{null, "", " ", "0", "0,00", "-5", "-0,5", "+5", "1,234", "1.234,5",
-                "1,", ",5", "1,2,3", "abc", "1e3", "12€", " 12", "12 ", "NaN", "٣"}) {
+                "1,", ",5", "1,2,3", "abc", "k", "1,2345678k", "1kk", "1e3", "12€", " 12", "12 ", "NaN", "٣"}) {
             assertEquals(OptionalLong.empty(), Money.parse(invalid), "devia rejeitar: " + invalid);
         }
     }

@@ -5,8 +5,8 @@ description: An economy plugin
 depend: [fAPI, fDatabase]
 commands:
   money:
-    description: Check your money, send money, or (admins) add, remove or set a player's balance
-    usage: "/money | /money send <jogador> <montante> | /money add|remove|set <jogador> <montante> | /money help"
+    description: Check your money, send money, see the top 10 richest, or (admins) add, remove or set a player's balance
+    usage: "/money | /money send <jogador> <montante> | /money top | /money add|remove|set <jogador> <montante> | /money help"
 permissions:
   feconomy.admin:
     description: Allows /money add, remove, set and help

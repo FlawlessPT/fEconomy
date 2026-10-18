@@ -8,6 +8,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -39,6 +41,9 @@ public class EconomyRepository {
     private static final String LOCK_BALANCES =
             "SELECT uuid, balance FROM feconomy_balances WHERE uuid IN (?, ?) ORDER BY uuid FOR UPDATE";
     private static final String SET_BALANCE = "UPDATE feconomy_balances SET balance = ? WHERE uuid = ?";
+
+    private static final String SELECT_TOP =
+            "SELECT username, balance FROM feconomy_balances WHERE balance > 0 ORDER BY balance DESC, username LIMIT ?";
 
     private final DatabaseService database;
 
@@ -213,6 +218,22 @@ public class EconomyRepository {
                 throw new AccountNotFoundException(uuid);
             }
             return cents;
+        });
+    }
+
+    /** @return as {@code limit} maiores contas com saldo positivo, da maior para a menor */
+    public CompletableFuture<List<TopEntry>> findTop(int limit) {
+        return database.supplyAsync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement(SELECT_TOP)) {
+                ps.setInt(1, limit);
+                try (ResultSet rs = ps.executeQuery()) {
+                    List<TopEntry> top = new ArrayList<>();
+                    while (rs.next()) {
+                        top.add(new TopEntry(rs.getString(1), rs.getLong(2)));
+                    }
+                    return top;
+                }
+            }
         });
     }
 

@@ -40,6 +40,10 @@ public class MoneyCommand implements CommandExecutor {
                 help(sender);
                 return true;
             }
+            if (args.length > 0 && args[0].equalsIgnoreCase("top")) {
+                top(sender, args);
+                return true;
+            }
             if (!(sender instanceof Player)) {
                 sender.sendMessage("§cApenas jogadores podem usar este comando.");
                 return true;
@@ -155,6 +159,34 @@ public class MoneyCommand implements CommandExecutor {
         }
     }
 
+    /** /money top. Corre na thread principal; pode ser a consola. */
+    private void top(CommandSender sender, String[] args) {
+        if (args.length != 1) {
+            sender.sendMessage("§cUso: /money top");
+            return;
+        }
+        later(service.top(10), "/money top de " + sender.getName(), (entries, error) -> {
+            if (error != null) {
+                FConsoleLogger.sendConsoleMessage("não foi possível obter o top: " + rootMessage(error),
+                        EMessageTypeEnum.ERROR);
+            }
+            if (sender instanceof Player && !((Player) sender).isOnline()) {
+                return;
+            }
+            if (error != null) {
+                sender.sendMessage("§cNão foi possível obter o top.");
+            } else if (entries.isEmpty()) {
+                sender.sendMessage("§eAinda ninguém tem dinheiro.");
+            } else {
+                sender.sendMessage("§6Top " + entries.size() + " mais ricos:");
+                for (int i = 0; i < entries.size(); i++) {
+                    sender.sendMessage("§e" + (i + 1) + ". §f" + entries.get(i).username() + " §7- "
+                            + Money.format(entries.get(i).balance()));
+                }
+            }
+        });
+    }
+
     /** /money help: só para staff (feconomy.admin) por agora. Corre na thread principal; pode ser a consola. */
     private void help(CommandSender sender) {
         if (!sender.hasPermission("feconomy.admin")) {
@@ -163,6 +195,7 @@ public class MoneyCommand implements CommandExecutor {
         }
         sender.sendMessage("§e/money §7- Mostra o teu saldo");
         sender.sendMessage("§e/money send <jogador> <montante> §7- Envia dinheiro a um jogador online");
+        sender.sendMessage("§e/money top §7- Mostra os 10 jogadores mais ricos");
         sender.sendMessage("§e/money add <jogador> <montante> §7- Adiciona saldo a um jogador");
         sender.sendMessage("§e/money remove <jogador> <montante> §7- Remove saldo a um jogador");
         sender.sendMessage("§e/money set <jogador> <montante> §7- Define o saldo de um jogador");

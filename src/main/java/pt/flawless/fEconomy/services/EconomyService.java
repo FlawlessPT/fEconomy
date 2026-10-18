@@ -4,6 +4,7 @@ import pt.flawless.fEconomy.money.Money;
 import pt.flawless.fapi.economy.EconomyApi;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -96,6 +97,11 @@ public class EconomyService implements EconomyApi {
             return invalidAmount(cents);
         }
         return repository.setBalance(uuid, cents);
+    }
+
+    @Override
+    public CompletableFuture<Optional<UUID>> getRichest() {
+        return repository.findRichest();
     }
 
     /** As {@code limit} maiores contas com saldo positivo, da maior para a menor. */

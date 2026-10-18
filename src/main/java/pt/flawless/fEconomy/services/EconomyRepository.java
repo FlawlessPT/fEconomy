@@ -42,6 +42,8 @@ public class EconomyRepository {
             "SELECT uuid, balance FROM feconomy_balances WHERE uuid IN (?, ?) ORDER BY uuid FOR UPDATE";
     private static final String SET_BALANCE = "UPDATE feconomy_balances SET balance = ? WHERE uuid = ?";
 
+    private static final String SELECT_RICHEST =
+            "SELECT uuid FROM feconomy_balances WHERE balance > 0 ORDER BY balance DESC, uuid ASC LIMIT 1";
     private static final String SELECT_TOP =
             "SELECT username, balance FROM feconomy_balances WHERE balance > 0 ORDER BY balance DESC, username LIMIT ?";
 
@@ -233,6 +235,16 @@ public class EconomyRepository {
                     }
                     return top;
                 }
+            }
+        });
+    }
+
+    /** @return o uuid da conta com maior saldo positivo (empate: uuid mais baixo), ou vazio se nenhuma */
+    public CompletableFuture<Optional<UUID>> findRichest() {
+        return database.supplyAsync(connection -> {
+            try (PreparedStatement ps = connection.prepareStatement(SELECT_RICHEST);
+                 ResultSet rs = ps.executeQuery()) {
+                return rs.next() ? Optional.of(UUID.fromString(rs.getString(1))) : Optional.<UUID>empty();
             }
         });
     }

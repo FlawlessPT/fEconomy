@@ -207,4 +207,16 @@ class EconomyServiceTest {
         assertEquals("12,50€", api.format(1250));
         assertEquals("0,05€", api.format(5));
     }
+
+    @Test
+    void getRichestDelegaNoRepositorio() throws Exception {
+        UUID rico = UUID.randomUUID();
+        FakeRepository repo = new FakeRepository() {
+            @Override
+            public CompletableFuture<Optional<UUID>> findRichest() {
+                return CompletableFuture.completedFuture(Optional.of(rico));
+            }
+        };
+        assertEquals(Optional.of(rico), new EconomyService(repo).getRichest().get());
+    }
 }

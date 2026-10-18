@@ -331,4 +331,34 @@ class EconomyRepositoryIT {
         assertEquals(Optional.of(100_000L - 50 * 7 + 50 * 3), await(repo.findBalance(a)));
         assertEquals(Optional.of(100_000L + 50 * 7 - 50 * 3), await(repo.findBalance(b)));
     }
+
+    @Test
+    void findRichestIgnoraSaldoZero() throws Exception {
+        await(repo.ensureAccount(UUID.randomUUID(), "A"));
+        await(repo.ensureAccount(UUID.randomUUID(), "B"));
+        assertEquals(Optional.empty(), await(repo.findRichest()));
+    }
+
+    @Test
+    void findRichestDevolveMaiorSaldo() throws Exception {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        await(repo.ensureAccount(a, "A"));
+        await(repo.ensureAccount(b, "B"));
+        await(repo.deposit(a, 500));
+        await(repo.deposit(b, 900));
+        assertEquals(Optional.of(b), await(repo.findRichest()));
+    }
+
+    @Test
+    void findRichestEmpateGanhaUuidMaisBaixo() throws Exception {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        await(repo.ensureAccount(a, "A"));
+        await(repo.ensureAccount(b, "B"));
+        await(repo.deposit(a, 700));
+        await(repo.deposit(b, 700));
+        UUID esperado = a.toString().compareTo(b.toString()) < 0 ? a : b;
+        assertEquals(Optional.of(esperado), await(repo.findRichest()));
+    }
 }

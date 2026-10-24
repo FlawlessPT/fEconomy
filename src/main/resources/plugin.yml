@@ -1,5 +1,6 @@
 name: fEconomy
 main: pt.flawless.fEconomy.FEconomy
+api-version: '1.21'
 version: 1.0
 description: An economy plugin
 depend: [fAPI, fDatabase]
